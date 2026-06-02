@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Configure default axios instance
 const api = axios.create({
-  baseURL: '', // Empty base URL is resolved via Vite proxy during development
+  baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://hirescheduler-backend.onrender.com'),
   headers: {
     'Content-Type': 'application/json'
   }
