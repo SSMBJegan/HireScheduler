@@ -18,34 +18,22 @@ module.exports = {
         activeCampaignId = campaign.id;
       }
 
-      // Fetch all selections for the campaign with location details
-      const selections = await db.query(
-        `SELECT a.user_id, cd.date, a.location 
-         FROM availability a
-         JOIN campaign_dates cd ON a.campaign_date_id = cd.id
-         WHERE a.campaign_id = ?`,
+      // Group selections per user (SQLite and MySQL compatible group concat)
+      const data = await db.query(
+        `SELECT u.name, u.employee_id, 
+         (SELECT GROUP_CONCAT(cd.date, '; ') FROM availability a 
+          JOIN campaign_dates cd ON a.campaign_date_id = cd.id 
+          WHERE a.user_id = u.id AND a.campaign_id = ?) as dates_selected
+         FROM users u WHERE u.role = 'interviewer' ORDER BY u.name ASC`,
         [activeCampaignId]
       );
 
-      // Fetch all interviewer users
-      const interviewers = await db.query(
-        `SELECT id, name, employee_id FROM users WHERE role = 'interviewer' ORDER BY name ASC`
-      );
-
-      // Map selections by user
-      const selectionsMap = new Map();
-      for (const sel of selections) {
-        if (!selectionsMap.has(sel.user_id)) {
-          selectionsMap.set(sel.user_id, []);
-        }
-        selectionsMap.get(sel.user_id).push(`${sel.date} (${sel.location})`);
-      }
-
-      const report = interviewers.map(u => {
-        const list = selectionsMap.get(u.id) || [];
+      // Split semi-colon string into Date 1, Date 2, Date 3
+      const report = data.map(row => {
+        const list = row.dates_selected ? row.dates_selected.split('; ') : [];
         return {
-          name: u.name,
-          employeeId: u.employee_id,
+          name: row.name,
+          employeeId: row.employee_id,
           date1: list[0] || '-',
           date2: list[1] || '-',
           date3: list[2] || '-'
@@ -115,34 +103,20 @@ module.exports = {
         filename = 'Availability_Report';
         headers = ['Name', 'Employee ID', 'Date 1', 'Date 2', 'Date 3'];
 
-        // Fetch all selections for the campaign with location details
-        const selections = await db.query(
-          `SELECT a.user_id, cd.date, a.location 
-           FROM availability a
-           JOIN campaign_dates cd ON a.campaign_date_id = cd.id
-           WHERE a.campaign_id = ?`,
+        const data = await db.query(
+          `SELECT u.name, u.employee_id, 
+           (SELECT GROUP_CONCAT(cd.date, '; ') FROM availability a 
+            JOIN campaign_dates cd ON a.campaign_date_id = cd.id 
+            WHERE a.user_id = u.id AND a.campaign_id = ?) as dates_selected
+           FROM users u WHERE u.role = 'interviewer'`,
           [activeCampaignId]
         );
 
-        // Fetch all interviewer users
-        const interviewers = await db.query(
-          `SELECT id, name, employee_id FROM users WHERE role = 'interviewer' ORDER BY name ASC`
-        );
-
-        // Map selections by user
-        const selectionsMap = new Map();
-        for (const sel of selections) {
-          if (!selectionsMap.has(sel.user_id)) {
-            selectionsMap.set(sel.user_id, []);
-          }
-          selectionsMap.get(sel.user_id).push(`${sel.date} (${sel.location})`);
-        }
-
-        rows = interviewers.map(u => {
-          const list = selectionsMap.get(u.id) || [];
+        rows = data.map(row => {
+          const list = row.dates_selected ? row.dates_selected.split('; ') : [];
           return [
-            u.name,
-            u.employee_id,
+            row.name,
+            row.employee_id,
             list[0] || '-',
             list[1] || '-',
             list[2] || '-'
