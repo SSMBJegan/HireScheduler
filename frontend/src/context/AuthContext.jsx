@@ -22,13 +22,18 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // Request 6-digit verification OTP
+  // Request direct login (OTP bypassed entirely as requested)
   const requestOTP = async (role, email, employeeId) => {
     try {
       const response = await api.post('/api/auth/otp-request', { role, email, employeeId });
-      return response.data;
+      const { token, user: userData } = response.data.data;
+      
+      localStorage.setItem('hirescheduler_token', token);
+      localStorage.setItem('hirescheduler_user', JSON.stringify(userData));
+      setUser(userData);
+      return userData;
     } catch (error) {
-      throw error.response?.data?.message || 'Failed to dispatch OTP verification passcode.';
+      throw error.response?.data?.message || 'Authentication failed.';
     }
   };
 

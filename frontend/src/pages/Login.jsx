@@ -38,20 +38,13 @@ export default () => {
       const activeEmail = loginMethod === 'email' || role === 'admin' ? email : null;
       const activeEmpId = loginMethod === 'employeeId' && role === 'interviewer' ? employeeId : null;
 
-      const res = await requestOTP(role, activeEmail, activeEmpId);
+      const userData = await requestOTP(role, activeEmail, activeEmpId);
       
-      setSuccessMsg('A verification code has been dispatched. Redirecting...');
+      setSuccessMsg('Authenticated successfully! Redirecting to Dashboard...');
       
-      // Navigate to OTP verification page, passing the credential values
       setTimeout(() => {
-        navigate('/otp-verify', { 
-          state: { 
-            role, 
-            email: activeEmail, 
-            employeeId: activeEmpId 
-          } 
-        });
-      }, 1500);
+        navigate(userData.role === 'admin' ? '/admin' : '/interviewer', { replace: true });
+      }, 1000);
     } catch (err) {
       setError(err);
       setLoading(false);
@@ -79,7 +72,7 @@ export default () => {
             <CheckCircle2 size={18} /> Enterprise Capabilities Included
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#E2E8F0' }}>
-            <li>• Dual OTP Security (Employee ID / Corporate Email verification)</li>
+            <li>• Dual Access Modes (Employee ID / Corporate Email verification)</li>
             <li>• AI Balanced workload resource planning</li>
             <li>• Custom reporting outputs with Excel & CSV exports</li>
             <li>• Immediate staffing conflict alert thresholds</li>
@@ -96,7 +89,7 @@ export default () => {
         <div className="card login-card animate-fade">
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h2 style={{ fontSize: '1.75rem', fontWeight: '700' }}>Welcome Back</h2>
-            <p style={{ marginTop: '4px' }}>Please request a passcode to access the portal</p>
+            <p style={{ marginTop: '4px' }}>Please sign in to access the portal</p>
           </div>
 
           {/* Role selector tab */}
@@ -223,7 +216,7 @@ export default () => {
               className="btn btn-primary"
               style={{ width: '100%', border: 'none' }}
             >
-              {loading ? 'Processing request...' : 'Send Verification OTP'}
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
 
@@ -242,7 +235,7 @@ export default () => {
               <strong>Development Environment Demo Credentials:</strong><br />
               • Admin Email: <code>admin@hirescheduler.com</code><br />
               • Interviewer ID: <code>EMP001</code> (or Email: <code>john@hirescheduler.com</code>)<br />
-              <em>Note: Once requested, your OTP code is printed directly to your local Node.js server console window.</em>
+              <em>Note: Enter any registered credentials to authenticate and gain instant access.</em>
             </div>
           </div>
 

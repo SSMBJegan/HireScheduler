@@ -4,7 +4,7 @@ const generateToken = require('../utils/generateToken');
 const responseHandler = require('../utils/responseHandler');
 
 module.exports = {
-  // Request OTP passcode
+  // Direct Login (bypassing OTP entirely as requested)
   async requestOTP(req, res) {
     const { role, email, employeeId } = req.body;
 
@@ -35,12 +35,27 @@ module.exports = {
         }
       }
 
-      // Generate and send OTP via console/mail
-      const otp = await otpService.sendOTP(user.email, user.employee_id);
-      
-      return responseHandler.success(res, { email: user.email }, 'Verification OTP has been sent successfully.');
+      // Bypass OTP: Directly sign and return the JWT token for instant access
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        employeeId: user.employee_id,
+        name: user.name,
+        role: user.role
+      });
+
+      return responseHandler.success(res, {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          employeeId: user.employee_id,
+          name: user.name,
+          role: user.role
+        }
+      }, 'Authenticated successfully.');
     } catch (error) {
-      return responseHandler.error(res, error, 'Failed to process OTP request.');
+      return responseHandler.error(res, error, 'Failed to authenticate user.');
     }
   },
 
