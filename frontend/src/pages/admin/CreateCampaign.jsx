@@ -14,7 +14,7 @@ export default () => {
   
   // Custom date slots allocation array
   const [dates, setDates] = useState([
-    { date: '', max_capacity: 20 }
+    { date: '', max_capacity: 20, location: 'Remote' }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default () => {
 
   // Add date option row
   const addDateRow = () => {
-    setDates([...dates, { date: '', max_capacity: 20 }]);
+    setDates([...dates, { date: '', max_capacity: 20, location: 'Remote' }]);
   };
 
   // Remove date option row
@@ -60,7 +60,11 @@ export default () => {
         end_date: endDate,
         deadline,
         max_selectable_dates: parseInt(maxSelectableDates),
-        dates: dates.map(d => ({ date: d.date, max_capacity: parseInt(d.max_capacity) }))
+        dates: dates.map(d => ({ 
+          date: d.date, 
+          max_capacity: parseInt(d.max_capacity),
+          location: d.location ? d.location.trim() : 'Remote'
+        }))
       };
 
       await api.post('/api/admin/campaigns', payload);
@@ -213,13 +217,25 @@ export default () => {
                   </div>
 
                   <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                    <label className="form-label">Max Capacity (Staff Count)</label>
+                    <label className="form-label">Max Capacity</label>
                     <input
                       type="number"
                       required
                       min={1}
                       value={d.max_capacity}
                       onChange={(e) => handleDateChange(index, 'max_capacity', e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ flex: 1.2, marginBottom: 0 }}>
+                    <label className="form-label">Location</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Hyderabad, Noida, Remote"
+                      value={d.location || ''}
+                      onChange={(e) => handleDateChange(index, 'location', e.target.value)}
                       className="form-input"
                     />
                   </div>

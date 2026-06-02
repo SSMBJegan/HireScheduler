@@ -22,5 +22,6 @@ router.delete('/campaigns/:id', adminController.deleteCampaign);
 
 router.get('/stats', adminController.getDashboardStats);
 router.get('/charts', adminController.getDashboardCharts);
+router.get('/active-sessions', adminController.getActiveSessions);
 
 module.exports = router;

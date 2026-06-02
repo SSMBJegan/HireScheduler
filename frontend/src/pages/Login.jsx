@@ -2,22 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Briefcase, Mail, Shield, User, HelpCircle, CheckCircle2 } from 'lucide-react';
+import api from '../api/axios';
 
 export default () => {
-  const { user, requestOTP } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [role, setRole] = useState('interviewer'); // 'admin', 'interviewer'
-  const [loginMethod, setLoginMethod] = useState('email'); // 'email', 'employeeId'
-  
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [employeeId, setEmployeeId] = useState('');
+  const [phone, setPhone] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Automatically bypass login if user has a valid active session in localStorage
+  // Automatically bypass login if user has a valid active session
   useEffect(() => {
     if (user) {
       if (user.role === 'admin') {
@@ -35,18 +35,23 @@ export default () => {
     setLoading(true);
 
     try {
-      const activeEmail = loginMethod === 'email' || role === 'admin' ? email : null;
-      const activeEmpId = loginMethod === 'employeeId' && role === 'interviewer' ? employeeId : null;
+      const payload = role === 'admin' 
+        ? { role, email } 
+        : { role, name, email, phone };
 
-      const userData = await requestOTP(role, activeEmail, activeEmpId);
+      const res = await api.post('/api/auth/otp-request', payload);
+      const { token, user: userData } = res.data.data;
       
-      setSuccessMsg('Authenticated successfully! Redirecting to Dashboard...');
+      localStorage.setItem('hirescheduler_token', token);
+      localStorage.setItem('hirescheduler_user', JSON.stringify(userData));
+      
+      setSuccessMsg('Authenticated successfully! Redirecting...');
       
       setTimeout(() => {
-        navigate(userData.role === 'admin' ? '/admin' : '/interviewer', { replace: true });
+        window.location.reload(); // Force full reload to sync state and route
       }, 1000);
     } catch (err) {
-      setError(err);
+      setError(err.response?.data?.message || 'Authentication failed.');
       setLoading(false);
     }
   };
@@ -72,7 +77,7 @@ export default () => {
             <CheckCircle2 size={18} /> Enterprise Capabilities Included
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#E2E8F0' }}>
-            <li>• Dual Access Modes (Employee ID / Corporate Email verification)</li>
+            <li>• Dual Access Modes (Corporate Email & Direct Registration)</li>
             <li>• AI Balanced workload resource planning</li>
             <li>• Custom reporting outputs with Excel & CSV exports</li>
             <li>• Immediate staffing conflict alert thresholds</li>
@@ -117,7 +122,7 @@ export default () => {
               <User size={16} style={{ marginRight: '6px' }} /> Interviewer
             </button>
             <button
-              onClick={() => { setRole('admin'); setLoginMethod('email'); setError(''); }}
+              onClick={() => { setRole('admin'); setError(''); }}
               className="btn btn-sm"
               style={{
                 flex: 1,
@@ -139,41 +144,14 @@ export default () => {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* Conditional login method selection tabs for interviewer */}
-            {role === 'interviewer' && (
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', marginBottom: '-8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="method"
-                    checked={loginMethod === 'email'}
-                    onChange={() => setLoginMethod('email')}
-                    style={{ accentColor: 'var(--primary)' }}
-                  />
-                  Corporate Email
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="method"
-                    checked={loginMethod === 'employeeId'}
-                    onChange={() => setLoginMethod('employeeId')}
-                    style={{ accentColor: 'var(--primary)' }}
-                  />
-                  Employee ID
-                </label>
-              </div>
-            )}
-
-            {/* Render appropriate input */}
-            {loginMethod === 'email' || role === 'admin' ? (
+            {role === 'admin' ? (
               <div className="form-group">
-                <label className="form-label">Email Address</label>
+                <label className="form-label">Admin Email Address</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="email"
                     required
-                    placeholder={role === 'admin' ? 'admin@hirescheduler.com' : 'john@hirescheduler.com'}
+                    placeholder="admin@hirescheduler.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="form-input"
@@ -188,24 +166,68 @@ export default () => {
                 </div>
               </div>
             ) : (
-              <div className="form-group">
-                <label className="form-label">Employee ID Number</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. EMP001"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    className="form-input"
-                    style={{ paddingLeft: '44px' }}
-                  />
-                  <Briefcase size={18} style={{ 
-                    position: 'absolute', 
-                    left: '16px', 
-                    top: '15px', 
-                    color: 'var(--text-secondary)' 
-                  }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="form-input"
+                      style={{ paddingLeft: '44px' }}
+                    />
+                    <User size={18} style={{ 
+                      position: 'absolute', 
+                      left: '16px', 
+                      top: '15px', 
+                      color: 'var(--text-secondary)' 
+                    }} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="email"
+                      required
+                      placeholder="john@hirescheduler.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="form-input"
+                      style={{ paddingLeft: '44px' }}
+                    />
+                    <Mail size={18} style={{ 
+                      position: 'absolute', 
+                      left: '16px', 
+                      top: '15px', 
+                      color: 'var(--text-secondary)' 
+                    }} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. +1 555-0199"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="form-input"
+                      style={{ paddingLeft: '44px' }}
+                    />
+                    <User size={18} style={{ 
+                      position: 'absolute', 
+                      left: '16px', 
+                      top: '15px', 
+                      color: 'var(--text-secondary)' 
+                    }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -232,10 +254,9 @@ export default () => {
           }}>
             <HelpCircle size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
             <div style={{ fontSize: '0.75rem', color: '#1E3A8A' }}>
-              <strong>Development Environment Demo Credentials:</strong><br />
+              <strong>Direct Sign In Demo Credentials:</strong><br />
               • Admin Email: <code>admin@hirescheduler.com</code><br />
-              • Interviewer ID: <code>EMP001</code> (or Email: <code>john@hirescheduler.com</code>)<br />
-              <em>Note: Enter any registered credentials to authenticate and gain instant access.</em>
+              • Interviewer: Enter your Name, Email, and Phone to register and enter instantly.
             </div>
           </div>
 

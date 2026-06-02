@@ -21,7 +21,7 @@ module.exports = {
       }
 
       // Gather input data
-      const interviewers = await db.query(`SELECT id, name, email FROM users WHERE role = 'interviewer'`);
+      const interviewers = await db.query(`SELECT id, name, email, is_active FROM users WHERE role = 'interviewer'`);
       const dates = await db.query(`SELECT id, date, max_capacity FROM campaign_dates WHERE campaign_id = ?`, [activeCampaignId]);
       const availability = await db.query(`SELECT user_id, campaign_date_id FROM availability WHERE campaign_id = ?`, [activeCampaignId]);
 

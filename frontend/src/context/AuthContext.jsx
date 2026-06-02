@@ -52,8 +52,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign out user session
-  const logout = () => {
+  // Sign out user session and clear active status in the database
+  const logout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (e) {
+      // Fail silently if offline
+    }
     localStorage.removeItem('hirescheduler_token');
     localStorage.removeItem('hirescheduler_user');
     setUser(null);

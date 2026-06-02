@@ -76,9 +76,20 @@ module.exports = {
       const dStr = d.date;
       const capacity = d.max_capacity;
 
+      const activeStatusMap = new Map(interviewers.map(u => [u.id, u.is_active || 0]));
+
       const candidates = availablePerDate[dId] || [];
-      // Sort candidates by current workload (greedy balance: pick those with lowest workload first)
-      const sortedCandidates = [...candidates].sort((a, b) => (userWorkload[a] || 0) - (userWorkload[b] || 0));
+      // Sort candidates:
+      // 1. Prioritize currently active/logged-in interviewers (is_active = 1 comes first)
+      // 2. Greedy workload balance (lowest workload first)
+      const sortedCandidates = [...candidates].sort((a, b) => {
+        const activeA = activeStatusMap.get(a) || 0;
+        const activeB = activeStatusMap.get(b) || 0;
+        if (activeA !== activeB) {
+          return activeB - activeA; // active (1) before inactive (0)
+        }
+        return (userWorkload[a] || 0) - (userWorkload[b] || 0);
+      });
 
       const selectedUids = sortedCandidates.slice(0, capacity);
       recommendedPlan[dStr] = selectedUids.map(uid => userNameMap.get(uid)).filter(Boolean);

@@ -165,6 +165,10 @@ export default () => {
                 <span style={{ fontSize: '1.05rem', fontWeight: '700', color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>
                   {d.date}
                 </span>
+
+                <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--secondary)', marginTop: '4px' }}>
+                  Location: <strong style={{ color: 'var(--text-primary)' }}>{d.location || 'Remote'}</strong>
+                </span>
                 
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                   {isFullyBooked ? (

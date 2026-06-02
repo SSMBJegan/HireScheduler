@@ -1,12 +1,11 @@
 const db = require('../config/db');
-const otpService = require('../services/otp.service');
 const generateToken = require('../utils/generateToken');
 const responseHandler = require('../utils/responseHandler');
 
 module.exports = {
-  // Direct Login (bypassing OTP entirely as requested)
+  // Direct Simplified Sign-In (no OTP authentication required)
   async requestOTP(req, res) {
-    const { role, email, employeeId } = req.body;
+    const { role, email, name, phone } = req.body;
 
     try {
       let user = null;
@@ -15,27 +14,50 @@ module.exports = {
         if (!email) {
           return responseHandler.badRequest(res, 'Admin email is required.');
         }
-        // Verify user is an admin
-        user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'admin'`, [email.toLowerCase().trim()]);
+        
+        const emailClean = email.toLowerCase().trim();
+        user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'admin'`, [emailClean]);
+        
         if (!user) {
-          return responseHandler.notFound(res, 'Admin account not found.');
+          // If no admin user exists, auto-create the first admin as a convenience fallback
+          if (emailClean === 'admin@hirescheduler.com') {
+            await db.run(`INSERT INTO users (email, name, role) VALUES (?, 'HR Administrator', 'admin')`, [emailClean]);
+            user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'admin'`, [emailClean]);
+          } else {
+            return responseHandler.notFound(res, 'Admin account not found.');
+          }
         }
       } else {
-        // Interviewer login (handles employeeId or email)
-        if (employeeId) {
-          user = await db.get(`SELECT * FROM users WHERE employee_id = ? AND role = 'interviewer'`, [employeeId.trim()]);
-        } else if (email) {
-          user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'interviewer'`, [email.toLowerCase().trim()]);
-        } else {
-          return responseHandler.badRequest(res, 'Employee ID or email is required.');
+        // Interviewer login (handles dynamic sign-in/registration with name, email, phone)
+        if (!email || !name || !phone) {
+          return responseHandler.badRequest(res, 'Name, Email, and Phone Number are required.');
         }
 
+        const emailClean = email.toLowerCase().trim();
+        user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'interviewer'`, [emailClean]);
+
         if (!user) {
-          return responseHandler.notFound(res, 'Interviewer employee record not found.');
+          // Auto-register new interviewer dynamically!
+          const userCountRow = await db.get(`SELECT COUNT(*) as cnt FROM users WHERE role = 'interviewer'`);
+          const count = (userCountRow?.cnt || 0) + 1;
+          const employeeId = `EMP${String(count).padStart(3, '0')}`;
+
+          await db.run(
+            `INSERT INTO users (employee_id, email, name, phone, role, is_active, last_active) VALUES (?, ?, ?, ?, 'interviewer', 1, CURRENT_TIMESTAMP)`,
+            [employeeId, emailClean, name.trim(), phone.trim()]
+          );
+          user = await db.get(`SELECT * FROM users WHERE email = ? AND role = 'interviewer'`, [emailClean]);
+        } else {
+          // Update active status and details for existing interviewer
+          await db.run(
+            `UPDATE users SET name = ?, phone = ?, is_active = 1, last_active = CURRENT_TIMESTAMP WHERE id = ?`,
+            [name.trim(), phone.trim(), user.id]
+          );
+          user = await db.get(`SELECT * FROM users WHERE id = ?`, [user.id]);
         }
       }
 
-      // Bypass OTP: Directly sign and return the JWT token for instant access
+      // Directly sign and return the JWT token for instant access
       const token = generateToken({
         id: user.id,
         email: user.email,
@@ -59,49 +81,20 @@ module.exports = {
     }
   },
 
-  // Verify OTP passcode
-  async verifyOTP(req, res) {
-    const { email, employeeId, otp } = req.body;
-
-    if (!otp) {
-      return responseHandler.badRequest(res, 'Verification OTP passcode is required.');
-    }
-
+  // Simplified Logout active status update
+  async logout(req, res) {
     try {
-      // Verify OTP in service
-      const verifiedEmail = await otpService.verifyOTP(email ? email.toLowerCase().trim() : null, employeeId ? employeeId.trim() : null, otp);
-      
-      if (!verifiedEmail) {
-        return responseHandler.badRequest(res, 'Invalid OTP or passcode has expired.');
+      if (req.user && req.user.id) {
+        await db.run(`UPDATE users SET is_active = 0 WHERE id = ?`, [req.user.id]);
       }
-
-      // Retrieve full user record
-      const user = await db.get(`SELECT * FROM users WHERE email = ?`, [verifiedEmail]);
-      if (!user) {
-        return responseHandler.notFound(res, 'User record not found.');
-      }
-
-      // Generate JWT Token
-      const token = generateToken({
-        id: user.id,
-        email: user.email,
-        employeeId: user.employee_id,
-        name: user.name,
-        role: user.role
-      });
-
-      return responseHandler.success(res, {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          employeeId: user.employee_id,
-          name: user.name,
-          role: user.role
-        }
-      }, 'Authenticated successfully.');
+      return responseHandler.success(res, null, 'Logged out successfully.');
     } catch (error) {
-      return responseHandler.error(res, error, 'Failed to verify OTP passcode.');
+      return responseHandler.error(res, error, 'Failed to process logout.');
     }
+  },
+
+  // Placeholder verify to prevent routes crash
+  async verifyOTP(req, res) {
+    return responseHandler.badRequest(res, 'Verification no longer required.');
   }
 };

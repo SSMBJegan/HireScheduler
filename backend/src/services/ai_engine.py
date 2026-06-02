@@ -31,6 +31,7 @@ def handle_schedule(data):
     # Track interviewer workload (how many dates they are assigned to)
     user_workload = {u["id"]: 0 for u in interviewers}
     user_name_map = {u["id"]: u["name"] for u in interviewers}
+    active_map = {u["id"]: u.get("is_active", 0) for u in interviewers}
     
     recommended_plan = {}
     explanation = []
@@ -46,8 +47,11 @@ def handle_schedule(data):
         # Interviewers who declared availability for this date
         candidates = available_per_date.get(d_id, [])
         
-        # Sort candidates by current workload (greedy balance: pick those with lowest workload first)
-        candidates_sorted = sorted(candidates, key=lambda uid: user_workload.get(uid, 0))
+        # Sort candidates by active status first (active 1 comes first), then workload (greedy balance)
+        candidates_sorted = sorted(
+            candidates,
+            key=lambda uid: (-active_map.get(uid, 0), user_workload.get(uid, 0))
+        )
         
         # Take up to max_capacity
         selected_uids = candidates_sorted[:capacity]

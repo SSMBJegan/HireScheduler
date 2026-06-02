@@ -15,7 +15,7 @@ module.exports = {
 
       // Fetch campaign dates with remaining capacities
       const dates = await db.query(
-        `SELECT cd.id, cd.date, cd.max_capacity,
+        `SELECT cd.id, cd.date, cd.max_capacity, cd.location,
          (SELECT COUNT(*) FROM availability a WHERE a.campaign_date_id = cd.id) as selections
          FROM campaign_dates cd WHERE cd.campaign_id = ?`,
         [campaign.id]
@@ -25,6 +25,7 @@ module.exports = {
         id: d.id,
         date: d.date,
         maxCapacity: d.max_capacity,
+        location: d.location || 'Remote',
         selections: d.selections,
         remainingSlots: Math.max(0, d.max_capacity - d.selections)
       }));

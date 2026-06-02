@@ -24,6 +24,7 @@ export default () => {
     dateDistribution: []
   });
 
+  const [activeSessions, setActiveSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,6 +36,9 @@ export default () => {
 
       const chartsRes = await api.get('/api/admin/charts');
       setCharts(chartsRes.data.data);
+      
+      const activeRes = await api.get('/api/admin/active-sessions');
+      setActiveSessions(activeRes.data.data);
       
       setLoading(false);
     } catch (err) {
@@ -248,6 +252,78 @@ export default () => {
         </div>
 
       </div>
+
+      {/* Active Sessions Monitoring Section */}
+      <div className="card" style={{ marginTop: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div>
+            <h3>Currently Logged In Team Members</h3>
+            <p style={{ fontSize: '0.8rem', marginTop: '2px' }}>Real-time active interviewer session tracking</p>
+          </div>
+          <span className="badge badge-low" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+            {activeSessions.length} Active Now
+          </span>
+        </div>
+
+        {activeSessions.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+            {activeSessions.map((session) => (
+              <div 
+                key={session.id} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '16px', 
+                  backgroundColor: 'var(--bg)', 
+                  borderRadius: 'var(--radius-sm)', 
+                  border: '1px solid var(--border)',
+                  position: 'relative'
+                }}
+              >
+                {/* Visual pulsing green indicator */}
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--success)',
+                  boxShadow: '0 0 0 2px rgb(34 197 94 / 0.4)',
+                  animation: 'pulse 1.5s infinite'
+                }}></div>
+
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--primary)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '700',
+                  fontSize: '0.9rem'
+                }}>
+                  {session.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <strong style={{ fontSize: '0.9rem' }}>{session.name}</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{session.email}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Phone: {session.phone || 'N/A'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            No interviewers currently logged in.
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };

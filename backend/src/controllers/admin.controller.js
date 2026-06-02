@@ -82,11 +82,11 @@ module.exports = {
 
       const campaignId = campaignResult.insertId;
 
-      // Insert dates with capacities
+      // Insert dates with capacities and specific locations (e.g. Hyderabad, Noida, etc.)
       for (const d of dates) {
         await db.run(
-          `INSERT INTO campaign_dates (campaign_id, date, max_capacity) VALUES (?, ?, ?)`,
-          [campaignId, d.date, d.max_capacity || 20]
+          `INSERT INTO campaign_dates (campaign_id, date, max_capacity, location) VALUES (?, ?, ?, ?)`,
+          [campaignId, d.date, d.max_capacity || 20, d.location ? d.location.trim() : 'Remote']
         );
       }
 
@@ -121,7 +121,7 @@ module.exports = {
       }
 
       const dates = await db.query(
-        `SELECT cd.id, cd.date, cd.max_capacity, 
+        `SELECT cd.id, cd.date, cd.max_capacity, cd.location,
          (SELECT COUNT(*) FROM availability a WHERE a.campaign_date_id = cd.id) as current_selections
          FROM campaign_dates cd WHERE cd.campaign_id = ?`,
         [id]
@@ -308,6 +308,20 @@ module.exports = {
       return responseHandler.success(res, null, 'HR Admin account removed successfully.');
     } catch (error) {
       return responseHandler.error(res, error, 'Failed to remove HR Admin.');
+    }
+  },
+
+  // Retrieve active logged in interviewer sessions
+  async getActiveSessions(req, res) {
+    try {
+      const activeUsers = await db.query(
+        `SELECT id, employee_id, email, name, phone, last_active FROM users 
+         WHERE role = 'interviewer' AND is_active = 1 
+         ORDER BY last_active DESC`
+      );
+      return responseHandler.success(res, activeUsers);
+    } catch (error) {
+      return responseHandler.error(res, error, 'Failed to fetch active logged in sessions.');
     }
   }
 };

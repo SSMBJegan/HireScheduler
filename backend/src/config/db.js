@@ -189,6 +189,20 @@ async function connectAndBootstrap() {
     console.log('SQLite tables initialized successfully.');
   }
 
+  // Upgrade schema dynamically to support simplified direct login active status tracking and date locations
+  try {
+    await run(`ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL`);
+  } catch (e) {}
+  try {
+    await run(`ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 0`);
+  } catch (e) {}
+  try {
+    await run(`ALTER TABLE users ADD COLUMN last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  } catch (e) {}
+  try {
+    await run(`ALTER TABLE campaign_dates ADD COLUMN location VARCHAR(100) DEFAULT 'Remote'`);
+  } catch (e) {}
+
   // Insert default administrator and default interviewers for easy testing if users table is empty
   const usersCount = await get(`SELECT COUNT(*) as cnt FROM users`);
   if (usersCount.cnt === 0) {
