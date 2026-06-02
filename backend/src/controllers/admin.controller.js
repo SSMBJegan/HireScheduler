@@ -67,17 +67,21 @@ module.exports = {
 
   // Create a hiring availability campaign
   async createCampaign(req, res) {
-    const { name, start_date, end_date, deadline, max_selectable_dates, dates } = req.body;
+    const { name, start_date, end_date, deadline, max_selectable_dates, dates, locations } = req.body;
 
     if (!name || !start_date || !end_date || !deadline || !dates || !dates.length) {
       return responseHandler.badRequest(res, 'Missing required campaign details or date allocations.');
     }
 
     try {
+      const locationsStr = Array.isArray(locations) 
+        ? locations.join(', ') 
+        : (locations ? locations.toString().trim() : 'Office, Remote, Hybrid');
+
       // Insert campaign
       const campaignResult = await db.run(
-        `INSERT INTO campaigns (name, start_date, end_date, deadline, max_selectable_dates, status) VALUES (?, ?, ?, ?, ?, 'active')`,
-        [name, start_date, end_date, deadline, max_selectable_dates || 3]
+        `INSERT INTO campaigns (name, start_date, end_date, deadline, max_selectable_dates, status, locations) VALUES (?, ?, ?, ?, ?, 'active', ?)`,
+        [name, start_date, end_date, deadline, max_selectable_dates || 3, locationsStr]
       );
 
       const campaignId = campaignResult.insertId;
@@ -92,7 +96,7 @@ module.exports = {
 
       return responseHandler.success(
         res,
-        { campaignId, name, start_date, end_date, deadline },
+        { campaignId, name, start_date, end_date, deadline, locations: locationsStr },
         'Hiring campaign created successfully.',
         201
       );

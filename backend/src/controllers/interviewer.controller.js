@@ -85,7 +85,8 @@ module.exports = {
       const myExistingIds = new Set(myExisting.map(e => e.campaign_date_id));
 
       // Rule 2: Cannot select fully booked dates
-      for (const dId of dateIds) {
+      for (const item of dateIds) {
+        const dId = typeof item === 'object' && item !== null ? item.dateId : item;
         const dObj = dateMap.get(dId);
         if (!dObj) {
           return responseHandler.badRequest(res, 'Invalid date selection.');
@@ -106,10 +107,20 @@ module.exports = {
         [userId, campaignId]
       );
 
-      for (const dId of dateIds) {
+      for (const item of dateIds) {
+        let dId;
+        let loc = 'Office';
+
+        if (typeof item === 'object' && item !== null) {
+          dId = item.dateId;
+          loc = item.location || 'Office';
+        } else {
+          dId = item;
+        }
+
         await db.run(
-          `INSERT INTO availability (user_id, campaign_id, campaign_date_id) VALUES (?, ?, ?)`,
-          [userId, campaignId, dId]
+          `INSERT INTO availability (user_id, campaign_id, campaign_date_id, location) VALUES (?, ?, ?, ?)`,
+          [userId, campaignId, dId, loc]
         );
       }
 
@@ -126,12 +137,15 @@ module.exports = {
 
     try {
       const selections = await db.query(
-        `SELECT campaign_date_id FROM availability WHERE user_id = ? AND campaign_id = ?`,
+        `SELECT campaign_date_id, location FROM availability WHERE user_id = ? AND campaign_id = ?`,
         [userId, campaignId]
       );
       
-      const ids = selections.map(s => s.campaign_date_id);
-      return responseHandler.success(res, ids);
+      const formatted = selections.map(s => ({
+        dateId: s.campaign_date_id,
+        location: s.location || 'Office'
+      }));
+      return responseHandler.success(res, formatted);
     } catch (error) {
       return responseHandler.error(res, error, 'Failed to fetch personal availability selections.');
     }

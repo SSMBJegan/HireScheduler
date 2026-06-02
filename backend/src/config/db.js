@@ -189,6 +189,21 @@ async function connectAndBootstrap() {
     console.log('SQLite tables initialized successfully.');
   }
 
+  // Upgrade schemas dynamically for campaign and selection location options
+  try {
+    await run(`ALTER TABLE campaigns ADD COLUMN locations VARCHAR(255) DEFAULT 'Office, Remote, Hybrid'`);
+    console.log('Schema Upgrade: Added locations column to campaigns.');
+  } catch (e) {
+    // Ignore if column already exists
+  }
+
+  try {
+    await run(`ALTER TABLE availability ADD COLUMN location VARCHAR(100) DEFAULT 'Office'`);
+    console.log('Schema Upgrade: Added location column to availability.');
+  } catch (e) {
+    // Ignore if column already exists
+  }
+
   // Insert default administrator and default interviewers for easy testing if users table is empty
   const usersCount = await get(`SELECT COUNT(*) as cnt FROM users`);
   if (usersCount.cnt === 0) {

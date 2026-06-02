@@ -43,11 +43,15 @@ export default () => {
     fetchCampaignAndPreferences();
   }, []);
 
+  const locationOptions = campaign?.locations
+    ? campaign.locations.split(',').map(l => l.trim())
+    : ['Office', 'Remote', 'Hybrid'];
+
   const handleCardToggle = (id) => {
     setError('');
     setSuccess('');
     
-    const isSelected = selectedDateIds.includes(id);
+    const isSelected = selectedDateIds.some(item => item.dateId === id);
     const dateObj = campaign.dates.find(d => d.id === id);
 
     // Rule 2: Cannot select fully booked dates
@@ -58,7 +62,7 @@ export default () => {
 
     if (isSelected) {
       // Remove
-      setSelectedDateIds(selectedDateIds.filter(dId => dId !== id));
+      setSelectedDateIds(selectedDateIds.filter(item => item.dateId !== id));
     } else {
       // Rule 1: Cannot exceed maximum selectable dates limit
       if (selectedDateIds.length >= campaign.max_selectable_dates) {
@@ -66,8 +70,14 @@ export default () => {
         return;
       }
       // Add
-      setSelectedDateIds([...selectedDateIds, id]);
+      setSelectedDateIds([...selectedDateIds, { dateId: id, location: locationOptions[0] || 'Office' }]);
     }
+  };
+
+  const handleLocationChange = (dateId, newLocation) => {
+    setSelectedDateIds(selectedDateIds.map(item => 
+      item.dateId === dateId ? { ...item, location: newLocation } : item
+    ));
   };
 
   const handleSave = async (e) => {
@@ -145,7 +155,7 @@ export default () => {
       {/* Selector Grid of Cards */}
       <div className="dates-selector-grid">
         {campaign.dates.map((d) => {
-          const isSelected = selectedDateIds.includes(d.id);
+          const isSelected = selectedDateIds.some(item => item.dateId === d.id);
           const isFullyBooked = d.remainingSlots === 0;
           
           return (
@@ -174,6 +184,31 @@ export default () => {
                   )}
                 </span>
               </div>
+
+              {/* Dynamic Location Dropdown Selector */}
+              {isSelected && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '16px' }} onClick={(e) => e.stopPropagation()}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--primary)' }}>Preferred Location</label>
+                  <select
+                    value={selectedDateIds.find(item => item.dateId === d.id)?.location || 'Office'}
+                    onChange={(e) => handleLocationChange(d.id, e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      backgroundColor: '#ffffff',
+                      color: 'var(--text-primary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {locationOptions.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Checkbox indicator */}
               <div className="card-select-checkbox">

@@ -11,6 +11,7 @@ export default () => {
   const [endDate, setEndDate] = useState('');
   const [deadline, setDeadline] = useState('');
   const [maxSelectableDates, setMaxSelectableDates] = useState(3);
+  const [locations, setLocations] = useState('Office, Remote, Hybrid');
   
   // Custom date slots allocation array
   const [dates, setDates] = useState([
@@ -60,6 +61,7 @@ export default () => {
         end_date: endDate,
         deadline,
         max_selectable_dates: parseInt(maxSelectableDates),
+        locations: locations,
         dates: dates.map(d => ({ date: d.date, max_capacity: parseInt(d.max_capacity) }))
       };
 
@@ -156,6 +158,22 @@ export default () => {
                 className="form-input"
               />
             </div>
+          </div>
+
+          {/* Location Options */}
+          <div className="form-group">
+            <label className="form-label">Campaign Location Options (comma separated)</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Office, Remote, Hybrid"
+              value={locations}
+              onChange={(e) => setLocations(e.target.value)}
+              className="form-input"
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+              These choices will be displayed to interviewers for them to pick when choosing their available dates.
+            </span>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0' }} />

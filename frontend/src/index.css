@@ -783,3 +783,111 @@ tr:hover td {
     padding: 24px 16px;
   }
 }
+
+/* Comprehensive Device Responsiveness (Mobile, Tablet, and Desktop optimization) */
+@media (max-width: 768px) {
+  /* Welcome header responsiveness */
+  .welcome-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  /* Stats cards spacing */
+  .stats-grid {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* Form Rows stacking */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Charts stacking and sizing */
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .chart-container {
+    min-height: auto;
+  }
+
+  /* Availability card grid stacking */
+  .dates-selector-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Preferred Location mobile alignment */
+  .date-selection-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+  .date-selection-card select {
+    width: 100%;
+  }
+
+  /* Timeline Scheduling stacking */
+  .timeline-card {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .timeline-date-side {
+    min-width: auto;
+  }
+  .timeline-allocations-side {
+    width: 100%;
+  }
+
+  /* Table responsive padding adjustments */
+  .table-header-bar {
+    padding: 16px;
+  }
+  th, td {
+    padding: 12px 16px;
+  }
+
+  /* Login Screen Stack */
+  .login-container {
+    flex-direction: column;
+  }
+  .login-left {
+    padding: 32px 24px;
+    min-height: auto;
+    flex: none;
+  }
+  .login-tagline {
+    font-size: 1.75rem;
+  }
+  .login-right {
+    padding: 32px 16px;
+    flex: 1;
+    align-items: flex-start;
+  }
+  .login-card {
+    max-width: 100%;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-title {
+    font-size: 1rem;
+  }
+  .profile-name {
+    display: none;
+  }
+  .nav-profile {
+    padding: 4px;
+    background: transparent;
+  }
+  .main-content {
+    padding: 16px 12px;
+  }
+}
