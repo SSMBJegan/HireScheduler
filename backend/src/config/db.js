@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const useSqlite = process.env.USE_SQLITE === 'true';
+let useSqlite = process.env.USE_SQLITE === 'true';
 let mysqlPool = null;
 let sqliteDb = null;
 
@@ -60,6 +60,81 @@ async function get(sql, params = []) {
 }
 
 async function connectAndBootstrap() {
+  if (!useSqlite) {
+    try {
+      console.log('Attempting to connect to MySQL database...');
+      mysqlPool = mysql.createPool({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'hirescheduler',
+        waitForConnections: true,
+        connectionLimit: 5,
+        queueLimit: 0,
+        connectTimeout: 4000 // 4 seconds connection timeout
+      });
+      
+      // Test the connection to ensure server is actually reachable
+      await mysqlPool.query('SELECT 1');
+      console.log('MySQL database connected successfully.');
+      
+      // Create tables with MySQL dialect
+      await run(`CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id VARCHAR(50) UNIQUE NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'interviewer',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await run(`CREATE TABLE IF NOT EXISTS campaigns (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(150) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        deadline DATETIME NOT NULL,
+        max_selectable_dates INT DEFAULT 3,
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await run(`CREATE TABLE IF NOT EXISTS campaign_dates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        campaign_id INT NOT NULL,
+        date DATE NOT NULL,
+        max_capacity INT NOT NULL,
+        FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
+      )`);
+
+      await run(`CREATE TABLE IF NOT EXISTS availability (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        campaign_id INT NOT NULL,
+        campaign_date_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+        FOREIGN KEY (campaign_date_id) REFERENCES campaign_dates(id) ON DELETE CASCADE,
+        UNIQUE(user_id, campaign_id, campaign_date_id)
+      )`);
+
+      await run(`CREATE TABLE IF NOT EXISTS otps (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(100) NOT NULL,
+        employee_id VARCHAR(50) NULL,
+        otp VARCHAR(6) NOT NULL,
+        expires_at TIMESTAMP NOT NULL
+      )`);
+
+      console.log('MySQL schemas checked/initialized.');
+    } catch (err) {
+      console.warn('⚠️ WARNING: MySQL database connection failed. Error details:', err.message);
+      console.warn('⚙️ Self-Healing Triggered: Falling back to local SQLite offline database layer...');
+      useSqlite = true;
+    }
+  }
+
   if (useSqlite) {
     console.log('Using SQLite database layer...');
     initSQLite();
@@ -112,68 +187,6 @@ async function connectAndBootstrap() {
     )`);
     
     console.log('SQLite tables initialized successfully.');
-  } else {
-    console.log('Connecting to MySQL database...');
-    mysqlPool = mysql.createPool({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'hirescheduler',
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
-    });
-    
-    // Create tables with MySQL dialect
-    await run(`CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      employee_id VARCHAR(50) UNIQUE NULL,
-      email VARCHAR(100) UNIQUE NOT NULL,
-      name VARCHAR(100) NOT NULL,
-      role VARCHAR(20) NOT NULL DEFAULT 'interviewer',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    await run(`CREATE TABLE IF NOT EXISTS campaigns (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(150) NOT NULL,
-      start_date DATE NOT NULL,
-      end_date DATE NOT NULL,
-      deadline DATETIME NOT NULL,
-      max_selectable_dates INT DEFAULT 3,
-      status VARCHAR(20) DEFAULT 'active',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    await run(`CREATE TABLE IF NOT EXISTS campaign_dates (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      campaign_id INT NOT NULL,
-      date DATE NOT NULL,
-      max_capacity INT NOT NULL,
-      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
-    )`);
-
-    await run(`CREATE TABLE IF NOT EXISTS availability (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL,
-      campaign_id INT NOT NULL,
-      campaign_date_id INT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
-      FOREIGN KEY (campaign_date_id) REFERENCES campaign_dates(id) ON DELETE CASCADE,
-      UNIQUE(user_id, campaign_id, campaign_date_id)
-    )`);
-
-    await run(`CREATE TABLE IF NOT EXISTS otps (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      email VARCHAR(100) NOT NULL,
-      employee_id VARCHAR(50) NULL,
-      otp VARCHAR(6) NOT NULL,
-      expires_at TIMESTAMP NOT NULL
-    )`);
-
-    console.log('MySQL database connected and tables initialized.');
   }
 
   // Insert default administrator and default interviewers for easy testing if users table is empty
