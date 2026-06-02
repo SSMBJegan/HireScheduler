@@ -200,7 +200,7 @@ async function connectAndBootstrap() {
     await run(`ALTER TABLE users ADD COLUMN last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   } catch (e) {}
   try {
-    await run(`ALTER TABLE campaign_dates ADD COLUMN location VARCHAR(100) DEFAULT 'Remote'`);
+    await run(`ALTER TABLE campaign_dates ADD COLUMN location VARCHAR(100) DEFAULT 'Hyderabad'`);
   } catch (e) {}
 
   // Insert default administrator and default interviewers for easy testing if users table is empty

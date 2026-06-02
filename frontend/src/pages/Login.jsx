@@ -256,7 +256,9 @@ export default () => {
             <div style={{ fontSize: '0.75rem', color: '#1E3A8A' }}>
               <strong>Direct Sign In Demo Credentials:</strong><br />
               • Admin Email: <code>admin@hirescheduler.com</code><br />
-              • Interviewer: Enter your Name, Email, and Phone to register and enter instantly.
+              • Demo Interviewer 1: Name: <code>John Doe</code>, Email: <code>john@hirescheduler.com</code>, Phone: <code>9876543210</code><br />
+              • Demo Interviewer 2: Name: <code>David Smith</code>, Email: <code>david@hirescheduler.com</code>, Phone: <code>8765432109</code><br />
+              <em>Note: You can also enter any custom name, email, and phone to dynamically register and log in instantly!</em>
             </div>
           </div>
 

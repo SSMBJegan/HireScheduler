@@ -14,7 +14,7 @@ export default () => {
   
   // Custom date slots allocation array
   const [dates, setDates] = useState([
-    { date: '', max_capacity: 20, location: 'Remote' }
+    { date: '', max_capacity: 20, location: 'Hyderabad' }
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default () => {
 
   // Add date option row
   const addDateRow = () => {
-    setDates([...dates, { date: '', max_capacity: 20, location: 'Remote' }]);
+    setDates([...dates, { date: '', max_capacity: 20, location: 'Hyderabad' }]);
   };
 
   // Remove date option row
@@ -233,7 +233,7 @@ export default () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Hyderabad, Noida, Remote"
+                      placeholder="e.g. Hyderabad, Vizag, Bangalore"
                       value={d.location || ''}
                       onChange={(e) => handleDateChange(index, 'location', e.target.value)}
                       className="form-input"
