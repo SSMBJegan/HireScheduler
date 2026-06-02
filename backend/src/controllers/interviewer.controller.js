@@ -86,7 +86,7 @@ module.exports = {
 
       // Rule 2: Cannot select fully booked dates
       for (const item of dateIds) {
-        const dId = typeof item === 'object' && item !== null ? item.dateId : item;
+        const dId = typeof item === 'object' && item !== null ? Number(item.dateId) : Number(item);
         const dObj = dateMap.get(dId);
         if (!dObj) {
           return responseHandler.badRequest(res, 'Invalid date selection.');
@@ -112,10 +112,10 @@ module.exports = {
         let loc = 'Office';
 
         if (typeof item === 'object' && item !== null) {
-          dId = item.dateId;
+          dId = Number(item.dateId);
           loc = item.location || 'Office';
         } else {
-          dId = item;
+          dId = Number(item);
         }
 
         await db.run(
