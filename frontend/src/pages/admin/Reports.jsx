@@ -51,8 +51,11 @@ export default () => {
   const handleExport = (format) => {
     if (!campaign) return;
     
+    // Resolve correct dynamic backend base URL for development and production
+    const backendUrl = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://hirescheduler-backend.onrender.com');
+    
     // Construct direct export API download URL path
-    const url = `/api/reports/export?reportType=${activeTab}&format=${format}&campaignId=${campaign.id}`;
+    const url = `${backendUrl}/api/reports/export?reportType=${activeTab}&format=${format}&campaignId=${campaign.id}`;
     
     // Create virtual temporary element to trigger immediate native download
     const link = document.createElement('a');
